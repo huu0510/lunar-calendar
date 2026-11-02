@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #f3efe4;
+  --color-paper-2: #e6dccb;
+  --color-ink: #1c1612;
+  --color-muted: #6d6156;
+  --color-cinnabar: #9d2c2c;
+  --color-cinnabar-deep: #6e1c22;
+  --color-gold: #8a672c;
+  --color-gold-soft: #ead7ae;
+  --color-indigo: #1b2836;
+  --color-bamboo: #1d6844;
+  --color-line: #ddd2c2;
+  --font-sans: var(--font-be-vietnam), "Be Vietnam Pro", "Noto Sans", sans-serif;
+  --font-serif: var(--font-noto-serif), "Noto Serif", serif;
+}
+
+body {
+  background:
+    radial-gradient(900px 420px at 0% -10%, rgba(157, 44, 44, 0.08), transparent 55%),
+    radial-gradient(700px 380px at 100% 0%, rgba(138, 103, 44, 0.12), transparent 50%),
+    var(--color-paper);
+  color: var(--color-ink);
+}
+
+::selection {
+  background: #ead7ae;
+}

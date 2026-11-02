@@ -1,0 +1,130 @@
+// Local development uses SQLite. Production uses PostgreSQL: change `provider`
+// to "postgresql", point DATABASE_URL at Postgres, and switch the driver
+// adapter in src/lib/db.ts (see README). leadDays stays JSON so the field
+// shape matches on both engines.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String      @id @default(cuid())
+  name         String?
+  email        String      @unique
+  passwordHash String
+  events       Event[]
+  recipients   Recipient[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Event {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  type         EventType
+  note         String?
+  calendarType CalendarType
+  day          Int
+  month        Int
+  year         Int?
+  isLeapMonth  Boolean          @default(false)
+  recurrence   Recurrence
+  leadDays     Json
+  recipients   EventRecipient[]
+  reminderLogs ReminderLog[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([userId])
+}
+
+model Recipient {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  channel      Channel
+  externalId   String
+  events       EventRecipient[]
+  reminderLogs ReminderLog[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([userId, channel, externalId])
+  @@index([userId])
+}
+
+model EventRecipient {
+  eventId     String
+  recipientId String
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  recipient   Recipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, recipientId])
+}
+
+/// Dedupes reminder delivery. status SENT blocks another send for the same
+/// (event, occurrence, lead, recipient, channel). FAILED is updated in place
+/// so a later run can retry that channel without a second row.
+model ReminderLog {
+  id             String    @id @default(cuid())
+  eventId        String
+  event          Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  occurrenceDate String
+  leadDays       Int
+  recipientId    String
+  recipient      Recipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  channel        Channel
+  status         String
+  error          String?
+  sentAt         DateTime  @default(now())
+
+  @@unique([eventId, occurrenceDate, leadDays, recipientId, channel])
+  @@index([status])
+}
+
+model ZaloToken {
+  id           String    @id @default("default")
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime?
+  updatedAt    DateTime  @updatedAt
+}
+
+model TelegramSubscriber {
+  chatId    String   @id
+  username  String?
+  firstName String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum EventType {
+  HOLIDAY
+  DEATH_ANNIVERSARY
+  ANNIVERSARY
+  CUSTOM
+}
+
+enum CalendarType {
+  SOLAR
+  LUNAR
+}
+
+enum Recurrence {
+  NONE
+  YEARLY_SOLAR
+  YEARLY_LUNAR
+}
+
+enum Channel {
+  TELEGRAM
+  ZALO
+}
